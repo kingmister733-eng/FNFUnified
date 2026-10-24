@@ -1,0 +1,16 @@
+name: Android APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show project files
+        run: |
+          echo "FNF Unified Engine"
+          find . -maxdepth 3 -type f -not -path './.git/*'

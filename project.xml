@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+    <meta
+        title="FNF Unified Engine"
+        package="com.fnfunified.engine"
+        version="0.1.0"
+        company="FNF Unified"
+    />
+
+    <app main="Main" path="source" />
+
+    <window
+        width="1280"
+        height="720"
+        fps="60"
+        background="#202030"
+    />
+
+    <haxelib name="openfl" />
+    <haxelib name="lime" />
+</project>

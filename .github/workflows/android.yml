@@ -1,16 +1,50 @@
-name: Android APK
+
+
+name: Build Android APK
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Show project files
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Haxe
         run: |
-          echo "FNF Unified Engine"
-          find . -maxdepth 3 -type f -not -path './.git/*'
+          sudo apt-get update
+          sudo apt-get install -y haxe neko
+          haxe --version
+          haxelib setup ~/haxelib
+
+      - name: Install Haxe libraries
+        run: |
+          haxelib install lime --quiet
+          haxelib install openfl --quiet
+          haxelib run lime setup
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build Android APK
+        run: |
+          haxelib run lime build android -release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FNF-Unified-APK
+          path: export/android/bin/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          

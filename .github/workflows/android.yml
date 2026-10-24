@@ -19,6 +19,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check project files
+        run: |
+          echo "Checking repository files..."
+          ls -la
+          test -f project.xml || { echo "ERROR: project.xml missing from repository root"; exit 1; }
+          test -f source/Main.hx || { echo "ERROR: source/Main.hx missing"; exit 1; }
+          echo "Project files found."
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -43,19 +51,21 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
-      - name: Install Android target
+      - name: Set up Android target
         run: |
           haxelib run lime setup android
 
-      - name: Build APK
+      - name: Build Android APK
         run: |
-          haxelib run lime build android -release
+          haxelib run lime build project.xml android -release
 
-      - name: Find generated APK
+      - name: Find APK
+        if: success()
         run: |
           find . -type f -name "*.apk" -not -path "./.git/*"
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: FNF-Unified-APK

@@ -3,16 +3,19 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
 
 jobs:
-  build-android:
-    runs-on: ubuntu-latest
+  build:
+    name: Build FNF Unified Engine for Android
+    runs-on: ubuntu-22.04
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Setup Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -23,16 +26,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y haxe neko
 
-      - name: Install Haxe libraries
+      - name: Setup Haxelib
+        run: |
+          mkdir -p "$HOME/haxelib"
+          haxelib setup "$HOME/haxelib"
+          haxelib config
+
+      - name: Install Lime and OpenFL
         shell: bash
         run: |
           set -e
           for attempt in 1 2 3 4 5; do
-            if haxelib install lime --quiet && haxelib install openfl --quiet; then
+            if haxelib install lime && haxelib install openfl; then
               break
             fi
             if [ "$attempt" -eq 5 ]; then
-              echo "Could not install Lime/OpenFL after 5 attempts"
+              echo "Failed to install Lime/OpenFL after 5 attempts."
               exit 1
             fi
             echo "Haxelib server may be busy; retrying in 15 seconds..."
@@ -40,25 +49,29 @@ jobs:
           done
           haxelib run lime setup -y
 
-      - name: Set up Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0 ndk;21.4.7075529'
 
       - name: Configure Android environment
-        shell: bash
         run: |
           echo "ANDROID_SDK=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/21.4.7075529" >> "$GITHUB_ENV"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/21.4.7075529" >> "$GITHUB_ENV"
+
+      - name: Setup Lime for Android
+        run: |
           haxelib run lime setup android
 
-      - name: Show Lime project configuration
-        run: haxelib run lime display project.xml android
+      - name: Check project
+        run: |
+          haxelib run lime display project.xml android
 
-      - name: Build release APK
-        run: haxelib run lime build project.xml android -release
+      - name: Build APK
+        run: |
+          haxelib run lime build project.xml android -release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -68,3 +81,4 @@ jobs:
             export/**/*.apk
             bin/**/*.apk
           if-no-files-found: error
+          retention-days: 14

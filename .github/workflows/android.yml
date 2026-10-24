@@ -1,63 +1,43 @@
-name: Build FNF Unified Engine APK
+name: Build Android APK
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-
-permissions:
-  contents: read
+    branches: [ main, master ]
 
 jobs:
-  build:
-    name: Build Android APK
-    runs-on: ubuntu-22.04
-
+  build-android:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Verify project files
-        run: |
-          pwd
-          ls -la
-          find source -maxdepth 3 -type f
-          test -f project.xml
-          test -f source/Main.hx
 
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: '17'
 
       - name: Install Haxe and Neko
         run: |
           sudo apt-get update
           sudo apt-get install -y haxe neko
-          haxe --version
-          haxelib setup "$HOME/haxelib"
 
-      - name: Install Lime and OpenFL
+      - name: Install Haxe libraries
+        shell: bash
         run: |
           set -e
-
-          retry_install() {
-            library="$1"
-            for attempt in 1 2 3 4 5; do
-              echo "Installing ${library}, attempt ${attempt}/5"
-              if haxelib install "$library" --quiet; then
-                return 0
-              fi
-              echo "Retrying in 15 seconds..."
-              sleep 15
-            done
-            return 1
-          }
-
-          retry_install lime
-          retry_install openfl
+          for attempt in 1 2 3 4 5; do
+            if haxelib install lime --quiet && haxelib install openfl --quiet; then
+              break
+            fi
+            if [ "$attempt" -eq 5 ]; then
+              echo "Could not install Lime/OpenFL after 5 attempts"
+              exit 1
+            fi
+            echo "Haxelib server may be busy; retrying in 15 seconds..."
+            sleep 15
+          done
           haxelib run lime setup -y
 
       - name: Set up Android SDK
@@ -68,44 +48,17 @@ jobs:
       - name: Configure Android environment
         shell: bash
         run: |
-          set -e
-
-          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
-
-          if [ -z "$SDK" ] || [ ! -d "$SDK" ]; then
-            echo "Android SDK directory was not found."
-            exit 1
-          fi
-
-          NDK="$SDK/ndk/21.4.7075529"
-
-          if [ ! -d "$NDK" ]; then
-            echo "Android NDK not found: $NDK"
-            exit 1
-          fi
-
-          echo "ANDROID_SDK=$SDK" >> "$GITHUB_ENV"
-          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
-          echo "ANDROID_NDK_ROOT=$NDK" >> "$GITHUB_ENV"
-          echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
-
+          echo "ANDROID_SDK=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/21.4.7075529" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/21.4.7075529" >> "$GITHUB_ENV"
           haxelib run lime setup android
 
-      - name: Diagnose and Build Android APK
-        working-directory: ${{ github.workspace }}
-        run: |
-          set -eux
+      - name: Show Lime project configuration
+        run: haxelib run lime display project.xml android
 
-          echo "Android SDK: $ANDROID_SDK"
-          echo "Android NDK: $ANDROID_NDK_ROOT"
-          echo "Java: $JAVA_HOME"
-
-          test -f project.xml
-          test -f source/Main.hx
-
-          haxelib run lime display project.xml android
-          haxelib run lime build project.xml android -release
+      - name: Build release APK
+        run: haxelib run lime build project.xml android -release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

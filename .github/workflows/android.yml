@@ -14,20 +14,21 @@ jobs:
     name: Build Android APK
     runs-on: ubuntu-22.04
 
+    env:
+      ANDROID_SDK: ${{ env.ANDROID_HOME }}
+      JAVA_HOME: ${{ env.JAVA_HOME }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Verify project files
-        working-directory: ${{ github.workspace }}
         run: |
-          echo "Repository directory:"
           pwd
           ls -la
           find source -maxdepth 3 -type f
           test -f project.xml
           test -f source/Main.hx
-          echo "Required files found."
 
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -48,20 +49,13 @@ jobs:
 
           retry_install() {
             library="$1"
-
             for attempt in 1 2 3 4 5; do
-              echo "Installing ${library}, attempt ${attempt}/5..."
-
+              echo "Installing ${library}, attempt ${attempt}/5"
               if haxelib install "$library" --quiet; then
-                echo "${library} installed successfully."
                 return 0
               fi
-
-              echo "Installation failed. Waiting before retry..."
               sleep 15
             done
-
-            echo "Failed to install ${library} after 5 attempts."
             return 1
           }
 
@@ -72,11 +66,32 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0 ndk;21.4.7075529'
 
-      - name: Configure Lime for Android
+      - name: Configure Android environment
+        shell: bash
         run: |
-          echo "Configuring Lime Android target..."
+          set -e
+
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "JAVA_HOME=$JAVA_HOME"
+
+          export ANDROID_SDK="$ANDROID_HOME"
+          export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/21.4.7075529"
+
+          if [ ! -d "$ANDROID_SDK" ]; then
+            echo "Android SDK directory not found: $ANDROID_SDK"
+            exit 1
+          fi
+
+          if [ ! -d "$ANDROID_NDK_ROOT" ]; then
+            echo "Android NDK directory not found: $ANDROID_NDK_ROOT"
+            exit 1
+          fi
+
+          echo "ANDROID_SDK=$ANDROID_SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT" >> "$GITHUB_ENV"
+
           haxelib run lime setup android
 
       - name: Diagnose and Build Android APK
@@ -84,21 +99,14 @@ jobs:
         run: |
           set -eux
 
-          cd "$GITHUB_WORKSPACE"
+          echo "Android SDK: $ANDROID_SDK"
+          echo "Android NDK: $ANDROID_NDK_ROOT"
+          echo "Java: $JAVA_HOME"
 
-          echo "Project directory:"
-          pwd
+          test -f project.xml
+          test -f source/Main.hx
 
-          echo "Project XML:"
-          cat project.xml
-
-          echo "Lime version:"
-          haxelib run lime --version
-
-          echo "Checking project configuration:"
           haxelib run lime display project.xml android
-
-          echo "Building Android APK:"
           haxelib run lime build project.xml android -release
 
       - name: Upload APK

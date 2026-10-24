@@ -12,11 +12,8 @@ permissions:
 
 jobs:
   build:
+    name: Build Android APK
     runs-on: ubuntu-22.04
-
-    defaults:
-      run:
-        working-directory: .
 
     steps:
       - name: Checkout repository
@@ -24,14 +21,15 @@ jobs:
 
       - name: Verify project files
         run: |
-          echo "Repository root:"
+          echo "Current directory:"
           pwd
-          echo "Files:"
+          echo "Repository files:"
           ls -la
-          echo "Project XML:"
-          cat project.xml
-          test -f project.xml
-          test -f source/Main.hx
+          echo "Source files:"
+          find source -maxdepth 3 -type f
+          test -f ./project.xml
+          test -f ./source/Main.hx
+          echo "Project files found."
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -57,12 +55,11 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
-      - name: Configure Android target
+      - name: Build Android APK
         run: |
-          haxelib run lime setup android
-
-      - name: Build APK
-        run: |
+          echo "Building from:"
+          pwd
+          ls -l ./project.xml
           haxelib run lime build ./project.xml android -release
 
       - name: Upload APK
@@ -73,4 +70,3 @@ jobs:
             export/**/*.apk
             bin/**/*.apk
           if-no-files-found: error
-          

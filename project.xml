@@ -1,26 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
-    <meta
-        title="FNF Unified Engine"
-        package="com.fnfunified.engine"
-        version="0.1.0"
-        company="FNF Unified"
-    />
-
-    <app
-        main="Main"
-        file="FNFUnified"
-    />
-
+    <meta title="FNF Unified Engine" package="com.fnfunified.engine" version="0.1.0" company="FNF Unified" />
+    <app main="Main" file="FNFUnified" />
     <source path="source" />
-
-    <window
-        width="1280"
-        height="720"
-        fps="60"
-        background="#202030"
-    />
-
+    <assets path="assets" />
+    <window width="1280" height="720" fps="60" background="#101020" />
     <haxelib name="lime" />
     <haxelib name="openfl" />
 </project>

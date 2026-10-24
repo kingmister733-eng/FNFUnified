@@ -1,4 +1,3 @@
-
 name: Build FNF Unified Engine APK
 
 on:
@@ -24,17 +23,10 @@ jobs:
         run: |
           echo "Repository directory:"
           pwd
-
-          echo "Repository files:"
           ls -la
-
-          echo "Source files:"
           find source -maxdepth 3 -type f
-
-          echo "Checking required files..."
           test -f project.xml
           test -f source/Main.hx
-
           echo "Required files found."
 
       - name: Set up Java
@@ -47,7 +39,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y haxe neko
-
           haxe --version
           haxelib setup "$HOME/haxelib"
 
@@ -76,13 +67,17 @@ jobs:
 
           retry_install lime
           retry_install openfl
-
           haxelib run lime setup -y
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
+      - name: Configure Lime for Android
+        run: |
+          echo "Configuring Lime Android target..."
+          haxelib run lime setup android
 
       - name: Diagnose and Build Android APK
         working-directory: ${{ github.workspace }}
@@ -91,12 +86,8 @@ jobs:
 
           cd "$GITHUB_WORKSPACE"
 
-          echo "Current directory:"
+          echo "Project directory:"
           pwd
-
-          echo "Project files:"
-          ls -la
-          ls -l project.xml
 
           echo "Project XML:"
           cat project.xml
@@ -104,10 +95,10 @@ jobs:
           echo "Lime version:"
           haxelib run lime --version
 
-          echo "Check Lime project parsing:"
+          echo "Checking project configuration:"
           haxelib run lime display project.xml android
 
-          echo "Build Android APK:"
+          echo "Building Android APK:"
           haxelib run lime build project.xml android -release
 
       - name: Upload APK

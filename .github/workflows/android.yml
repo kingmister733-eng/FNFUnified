@@ -1,13 +1,19 @@
-name: Build Android APK
+
+name: Build FNF Unified Engine APK
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build Android APK
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout repository
@@ -23,22 +29,38 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y haxe neko
-          haxelib setup ~/haxelib
+          haxe --version
+          haxelib setup "$HOME/haxelib"
 
       - name: Install Lime and OpenFL
         run: |
           haxelib install lime --quiet
           haxelib install openfl --quiet
+          haxelib run lime setup -y
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
+      - name: Install Android target
+        run: |
+          haxelib run lime setup android
 
       - name: Build APK
-        run: haxelib run lime build android -release
+        run: |
+          haxelib run lime build android -release
+
+      - name: Find generated APK
+        run: |
+          find . -type f -name "*.apk" -not -path "./.git/*"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: FNF-Unified-APK
-          path: export/android/bin/app/build/outputs/apk/**/*.apk
+          path: |
+            export/**/*.apk
+            bin/**/*.apk
           if-no-files-found: error
+          

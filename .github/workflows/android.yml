@@ -48,8 +48,30 @@ jobs:
 
       - name: Install Lime and OpenFL
         run: |
-          haxelib install lime --quiet
-          haxelib install openfl --quiet
+          set -e
+
+          retry_install() {
+            library="$1"
+
+            for attempt in 1 2 3 4 5; do
+              echo "Installing ${library}, attempt ${attempt}/5..."
+
+              if haxelib install "$library" --quiet; then
+                echo "${library} installed successfully."
+                return 0
+              fi
+
+              echo "Installation failed. Waiting before retry..."
+              sleep 15
+            done
+
+            echo "Failed to install ${library} after 5 attempts."
+            return 1
+          }
+
+          retry_install lime
+          retry_install openfl
+
           haxelib run lime setup -y
 
       - name: Set up Android SDK
@@ -62,12 +84,16 @@ jobs:
         run: |
           echo "Project directory:"
           pwd
+
           echo "Checking project.xml:"
           test -f project.xml
+
           echo "Project XML:"
           head -n 20 project.xml
+
           echo "Lime version:"
           haxelib run lime --version
+
           echo "Starting Android build:"
           haxelib run lime build android -release -verbose
 

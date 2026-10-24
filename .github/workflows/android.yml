@@ -12,20 +12,26 @@ permissions:
 
 jobs:
   build:
-    name: Build Android APK
     runs-on: ubuntu-22.04
+
+    defaults:
+      run:
+        working-directory: .
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check project files
+      - name: Verify project files
         run: |
-          echo "Checking repository files..."
+          echo "Repository root:"
+          pwd
+          echo "Files:"
           ls -la
-          test -f project.xml || { echo "ERROR: project.xml missing from repository root"; exit 1; }
-          test -f source/Main.hx || { echo "ERROR: source/Main.hx missing"; exit 1; }
-          echo "Project files found."
+          echo "Project XML:"
+          cat project.xml
+          test -f project.xml
+          test -f source/Main.hx
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -51,21 +57,15 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
-      - name: Set up Android target
+      - name: Configure Android target
         run: |
           haxelib run lime setup android
 
-      - name: Build Android APK
+      - name: Build APK
         run: |
-          haxelib run lime build project.xml android -release
-
-      - name: Find APK
-        if: success()
-        run: |
-          find . -type f -name "*.apk" -not -path "./.git/*"
+          haxelib run lime build ./project.xml android -release
 
       - name: Upload APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: FNF-Unified-APK

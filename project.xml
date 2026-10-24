@@ -7,7 +7,12 @@
         company="FNF Unified"
     />
 
-    <app main="Main" path="source" />
+    <app
+        main="Main"
+        file="FNFUnified"
+    />
+
+    <source path="source" />
 
     <window
         width="1280"
@@ -16,6 +21,6 @@
         background="#202030"
     />
 
-    <haxelib name="openfl" />
     <haxelib name="lime" />
+    <haxelib name="openfl" />
 </project>

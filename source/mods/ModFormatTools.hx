@@ -1,6 +1,6 @@
 package mods;
 
-public enum ModFormat {
+enum ModFormat {
     Unknown;
     PsychEngine;
     VSlice;

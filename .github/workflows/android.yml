@@ -53,7 +53,7 @@ jobs:
         run: |
           set -e
           mkdir -p .harness/test-out
-          haxe -cp source -cp tests -main tests.TestMain -neko .harness/test-out/tests.n
+          haxe -cp source -cp tests -main tests.TestModFormatTools -neko .harness/test-out/tests.n
           neko .harness/test-out/tests.n
 
       - name: Setup Android SDK

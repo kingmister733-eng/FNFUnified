@@ -1,11 +1,5 @@
 package mods;
 
-enum ModFormat {
-    Unknown;
-    PsychEngine;
-    VSlice;
-}
-
 class ModFormatTools {
     public static function fromString(value:String):ModFormat {
         if (value == null) return Unknown;

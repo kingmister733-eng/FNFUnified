@@ -6,7 +6,7 @@ enum ModFormat {
     VSlice;
 }
 
-public class ModFormatTools {
+class ModFormatTools {
     public static function fromString(value:String):ModFormat {
         if (value == null) return Unknown;
         var lower:String = value.toLowerCase();

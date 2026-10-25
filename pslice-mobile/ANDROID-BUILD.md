@@ -21,24 +21,31 @@ haxelib run lime build android -ONLY_ARMV7
 
 ## 1. Where the build stands
 
-Compilation of the engine **succeeds**. Haxe produces the generated C++, hxcpp
-compiles it and links the native library:
+With the dependencies below and the one-line flixel patch from §3, the Android
+build now completes end to end:
 
 ```
-Compiling group: haxe
 Link: libApplicationMain-v7.so
+...
+> Task :app:packageRelease
+> Task :app:assembleRelease
+
+BUILD SUCCESSFUL in 3m 51s
+122 actionable tasks: 122 executed
 ```
 
-The build then hands over to Gradle and stops at one task:
+Artifact: `export/release/android/bin/app/build/outputs/apk/release/PSliceEngine-release.apk`
+(718 MiB, 2582 entries, 1704 files under `assets/`), signed with the keystore
+shipped in the repository (`CN=Lily Ross, O=MobilePorting`),
+`package=com.mikolka9144.pslice`, `versionName=0.1`, `minSdk=21`,
+`targetSdk=35`, ABI `armeabi-v7a` (`-ONLY_ARMV7`).
 
-```
-> Task :app:processReleaseMainManifest FAILED
-com.android.manifmerger.ManifestMerger2$MergeFailureException:
-  Error parsing .../bin/app/src/main/AndroidManifest.xml
-```
+sha256: `d5584c0605c999584d7986233beff71d00c84f1e69f07e6094e7e4c8cca296f0`
 
-So the only remaining blocker is the generated `AndroidManifest.xml`. No source
-file of P-Slice Mobile is broken, and no Android feature has been removed.
+Before the flixel patch the build died one step earlier, in
+`:app:processReleaseMainManifest` (`Error parsing .../AndroidManifest.xml`);
+see §3. No source file of P-Slice Mobile was changed to make the build pass and
+no Android feature was removed.
 
 ## 2. Dependency matrix
 
@@ -97,7 +104,7 @@ Lime evaluates `${...}` conditions only from 8.2.0 on. `lime-mobile` is based on
 `&ge;` is not a predefined XML entity, so `aapt`/manifest-merger cannot parse
 the file — this is the `processReleaseMainManifest` failure.
 
-### Safe fix (recommended, one line)
+### Fix applied (one line)
 
 In the installed flixel haxelib, replace that line with:
 
@@ -138,5 +145,17 @@ haxelib git FlxPartialSound https://github.com/...        # as declared in Proje
 haxelib run lime build android -ONLY_ARMV7
 ```
 
-Then apply the one-line flixel patch from §3 and re-run the build; the Gradle
-step is the first thing that has to be re-verified afterwards.
+Then apply the one-line flixel patch from §3 and re-run the build.
+
+## 5. What is still not covered
+
+* Only `armeabi-v7a` is built (`-ONLY_ARMV7`). `-ONLY_ARM64`, `x86` and the
+  fat build have not been verified.
+* The build is a local one-shot: nothing in `.github/workflows` builds this tree
+  (the engine workflows live in `pslice-mobile/.github`, which GitHub does not
+  run, and the root workflow still targets the old prototype).
+* Dependency pins are still `version="git"` in `Project.xml`; the exact
+  fork+commit combination that works is recorded here and in §2, not enforced
+  by the project file.
+* Nothing was tested on a real device or emulator, so runtime behaviour of the
+  engine is unverified.

@@ -62,43 +62,53 @@ All 2176 files were verified against the upstream git blob hashes after import
 * Haxelib libraries pinned exactly as in `pslice-mobile/.github/workflows/build.yml`:
 
 ```
-haxelib git     hxcpp                 https://github.com/mcagabe19-stuff/hxcpp
-haxelib git     lime                  https://github.com/mcagabe19-stuff/lime
+haxelib git     lime                  https://github.com/Psych-Slice/lime-mobile                      # 8.1.2 base
+haxelib install hxcpp                 4.3.2
 haxelib install openfl                9.3.3
-haxelib git     flixel                https://github.com/MobilePorting/flixel.git p-slice
+haxelib git     flixel                https://github.com/HaxeFlixel/flixel 5.8.0                  # + one-line patch, below
 haxelib install flixel-addons         3.2.2
 haxelib install flixel-tools          1.5.1
 haxelib install hscript-iris          1.1.0
 haxelib install tjson                 1.4.0
 haxelib git     flxanimate            https://github.com/Psych-Slice/FlxAnimate.git 18091dfeb629ba2805a5f3e10f5de80433080359
-haxelib git     linc_luajit           https://github.com/mcagabe19-stuff/linc_luajit-rewriten
+haxelib git     linc_luajit           https://github.com/Psych-Slice/linc_luajit-mobile               # 0.0.8
 haxelib git     hxdiscord_rpc         https://github.com/MAJigsaw77/hxdiscord_rpc f9353b9edce10f4605d125dd1bda24ac36898bfb
 haxelib install hxvlc                 1.8.2
 haxelib git     funkin.vis            https://github.com/FunkinCrew/funkVis 22b1ce089dd924f15cdc4632397ef3504d464e90
 haxelib git     grig.audio            https://gitlab.com/haxe-grig/grig.audio.git cbf91e2180fd2e374924fe74844086aab7891666
 haxelib git     FlxPartialSound       https://github.com/FunkinDroidTeam/FlxPartialSound 3d1da83cca3863174ca6a56827cd95c2020754bc
-haxelib git     extension-androidtools https://github.com/MAJigsaw77/extension-androidtools
 ```
 
 `linc_luajit` is declared with `<haxedef name="LINC_LUA_RELATIVE_DYNAMIC_LIB"/>` in
 `Project.xml`, so the project expects the relative-dynamic-library build of that
 library (the upstream fork above).
 
-### Missing upstream dependencies (verified 2026-10-25)
+### Dependency substitutions (verified 2026-10-25)
 
-Three of the repositories above no longer exist (GitHub answers 404 / asks for
-credentials when cloning them). They are not interchangeable with the haxelib
-releases, because P-Slice's source uses APIs that only those forks provide:
+Four repositories listed above no longer exist (GitHub answers 404 / asks for
+credentials when cloning them). Public replacements were found under the
+Psych-Slice organisation, and with them the Android build succeeds:
 
-| Repository (from upstream CI) | Status | Why it matters |
-| --- | --- | --- |
-| `mcagabe19-stuff/lime` | **404 / gone** | supplies the `android.*` Haxe externs used by `source/import.hx` (`android.content.Context`, `android.widget.Toast`, `android.os.Environment`, `android.os.Build.VERSION`, `android.os.BatteryManager`, `android.Permissions`, `android.Settings`, `android.Tools`) |
-| `MobilePorting/flixel` branch `p-slice` | **404 / gone** | the engine's own flixel fork; the public `flixel` release is the only feasible substitute |
-| `mcagabe19-stuff/linc_luajit-rewriten` | **404 / gone** | provides `llua.Lua_helper.sendErrorsToLua`, used by `source/psychlua/CallbackHandler.hx` |
+| Upstream CI pin | Unavailable | Used instead | Why it works |
+| --- | --- | --- | --- |
+| `mcagabe19-stuff/lime` | 404 | `Psych-Slice/lime-mobile` @ `fff2ffb` (Lime 8.1.2 base) | ships the nine `android.*` externs used by `source/import.hx` (`Context`, `Toast`, `Environment`, `Build`, `BatteryManager`, `Permissions`, `Settings`, `Tools`, `callback/CallBack`) plus `lime.utils.JNISafety`, and already bundles `extension-androidtools` |
+| `MobilePorting/flixel` @ `p-slice` | 404 | `HaxeFlixel/flixel` 5.8.0 + one-line `include.xml` patch | the engine compiles against the 5.8.0 API; the patch only drops a version guard, see below |
+| `mcagabe19-stuff/linc_luajit-rewriten` | 404 | `Psych-Slice/linc_luajit-mobile` @ `bc8cb0b` (0.0.8) | same `llua` API, including `sendErrorsToLua` used by `source/psychlua/CallbackHandler.hx` |
+| `mcagabe19-stuff/hxcpp` | 404 | haxelib `hxcpp` 4.3.2 | builds the engine without changes |
 
-Until those forks are recovered (from a mirror, an existing build machine, or
-their authors) the project cannot be compiled for Android with public
-dependencies only. See the build results below.
+`extension-androidtools` is no longer requested by `pslice-mobile/Project.xml`: it
+is bundled inside `lime-mobile`, and adding it again makes Lime abort with
+"You cannot add extension-androidtools to this Lime because it is already
+included". The engine never imports `extension.androidtools.*`.
+
+**Required flixel patch.** `flixel/include.xml` injects
+`<application android:appCategory="game" if="${lime &ge; 8.2.0}" />`. Lime only
+evaluates `${…}` conditions from 8.2.0 on, so 8.1.2 writes the guard into the
+manifest and `&ge;` (not a predefined XML entity) makes the manifest
+unparseable. Replace that line with
+`<application android:appCategory="game" />`; it is a launcher hint, not a
+feature used by the engine. Details, logs and rejected alternatives:
+[`pslice-mobile/ANDROID-BUILD.md`](pslice-mobile/ANDROID-BUILD.md).
 
 ## Building the Android APK
 
@@ -198,11 +208,10 @@ Keeping the prototype in its own place therefore preserves it for reference
 
 Toolchain used: JDK 17.0.21 (Temurin), Haxe 4.3.6, Neko 2.3.0, Android SDK
 `platforms;android-34` + `build-tools;34.0.0` + `ndk;21.4.7075529`, g++ 13.3.
-Libraries: `lime` 8.3.2, `openfl` 9.3.3, `hxcpp` 4.3.2, `flixel` 5.8.0,
-`flixel-addons` 3.2.2, plus the pinned git libraries that are still reachable
-(`flxanimate`, `hxdiscord_rpc`, `hxvlc` 1.8.2, `funkin.vis`, `grig.audio`,
-`FlxPartialSound`, `extension-androidtools`, `linc_luajit` from
-`YoshiCrafter29/linc_luajit` as the substitute for the deleted fork).
+Libraries: `lime` 8.1.2 from `Psych-Slice/lime-mobile`, `openfl` 9.3.3, `hxcpp`
+4.3.2, `flixel` 5.8.0 (patched `include.xml`), `flixel-addons` 3.2.2, `flxanimate`,
+`hxdiscord_rpc`, `hxvlc` 1.8.2, `funkin.vis`, `grig.audio`, `FlxPartialSound`,
+`linc_luajit` from `Psych-Slice/linc_luajit-mobile`.
 
 1. **Project configuration check — PASSED.**
 
@@ -215,61 +224,51 @@ Libraries: `lime` 8.3.2, `openfl` 9.3.3, `hxcpp` 4.3.2, `flixel` 5.8.0,
    the expected Android defines: `android mobile lime-opengles lime-cairo
    MODS_ALLOWED LUA_ALLOWED HSCRIPT_ALLOWED BASE_GAME_FILES VIDEOS_ALLOWED …`.
 
-2. **APK build — FAILED (not a successful build).**
+2. **APK build — PASSED.**
 
    ```
    cd pslice-mobile && haxelib run lime build android -ONLY_ARMV7
    ```
 
-   The Haxe compile stops in `source/import.hx` with 8 root errors (2260 error
-   blocks in total, because every file auto-imports them):
-
    ```
-   source/import.hx:29: Type not found : android.content.Context
-   source/import.hx:30: Type not found : android.widget.Toast
-   source/import.hx:31: Type not found : android.os.Environment
-   source/import.hx:32: Type not found : android.Permissions
-   source/import.hx:33: Type not found : android.Settings
-   source/import.hx:34: Type not found : android.Tools
-   source/import.hx:35: Type not found : android.os.Build
-   source/import.hx:37: Type not found : android.os.BatteryManager
-   source/psychlua/CallbackHandler.hx:55: Class<llua.Lua_helper> has no field sendErrorsToLua
+   Link: libApplicationMain-v7.so
+   …
+   > Task :app:packageRelease
+   > Task :app:assembleRelease
+
+   BUILD SUCCESSFUL in 3m 51s
+   122 actionable tasks: 122 executed
    ```
 
-   Cause: those types live in the deleted `mcagabe19-stuff/lime` fork, and
-   `sendErrorsToLua` in the deleted `linc_luajit` fork (see the table above).
-   `source/openfl/display/Shader.hx` and `source/mobile/psychlua/Functions.hx`
-   fail for the same missing `android.Tools` type.
+   Result:
+   `pslice-mobile/export/release/android/bin/app/build/outputs/apk/release/PSliceEngine-release.apk`
+   — 718 MiB, 2582 entries (1704 under `assets/`), ABI `armeabi-v7a`,
+   `package=com.mikolka9144.pslice`, `versionName=0.1`, `minSdk=21`,
+   `targetSdk=35`, signed with the repository keystore
+   (`CN=Lily Ross, O=MobilePorting`).
 
-   Two earlier attempts, kept for the record, failed even sooner for the same
-   root reason (substituting public libraries for the missing forks):
-
-   * `flixel` from `FunkinCrew/flixel` (6.1.2) → `FlxDefines` aborts with
-     `Unsupported Flixel Addons version! Supported versions are 3.3.0 or newer (found 3.2.2)`;
-   * `flixel` 4.11.0 → `flixel-addons` 3.2.2 aborts with
-     `Flixel-Addons is not compatible with flixel versions older than 5.3.0`,
-     and the engine source needs `flixel.sound.FlxSound` (moved in flixel 5.3.0);
-   * `flixel` 5.8.0 is the closest public match and is what the last run used —
-     it removed the flixel errors and left only the fork-specific ones above.
-
-   **No APK was produced.** `pslice-mobile/export/` contains only intermediate
-   `ApplicationMain.hx` output.
+   Earlier runs, kept for the record, failed further upstream in the same
+   dependency problem: with stock Lime 8.1.2 the compile died on
+   `Type not found : android.content.Context` (8 root errors, 2260 blocks) and
+   `lime.ui._Window.WindowBackend has no field setVSync`; with `flixel` 6.1.2 or
+   4.11.0 `flixel-addons` 3.2.2 refused the version; and before the `include.xml`
+   patch the build reached Gradle but `:app:processReleaseMainManifest` could not
+   parse the generated manifest. All three are resolved by the substitutions in
+   the table above.
 
 3. **Import integrity — PASSED.** 2176/2176 files match the upstream git blob
    hashes (re-checked with `git ls-files -s` against the upstream tree).
 
 ## Known issues and incompatibilities
 
-1. **Cannot build an APK with public dependencies.** The three deleted forks
-   listed above are required for the Android target (`android.*` externs) and the
-   Lua bridge. This is a dependency-availability problem, not a defect of the
-   imported code. Recovering the forks (mirrors or forks of `mcagabe19-stuff/lime`,
-   `MobilePorting/flixel@p-slice`, `mcagabe19-stuff/linc_luajit-rewriten`) is the
-   first task before any engine work.
+1. **The build needs a patched haxelib.** `flixel` must be installed from a git
+   checkout and its `include.xml` patched once (see "Dependency substitutions");
+   a plain `haxelib install flixel` will not do. `lime` must be
+   `Psych-Slice/lime-mobile`, not a release from lib.haxe.org.
 2. **The engine was never validated against upstream CI here.** Upstream builds
    Android on `macos-14` with `-ONLY_ARMV7` / `android -final -D officialBuild`;
-   the local attempt used Linux + NDK 21.4, so even with the forks restored a
-   Linux/NDK combination is unproven.
+   the verified build used Linux + NDK 21.4, so the upstream CI path itself
+   remains unproven.
 3. **Only `armv7` was attempted.** Other ABIs (`arm64`, `x86_64`) were not built;
    `-ONLY_ARMV7` is what upstream's `main.yml` publishes.
 4. **Signing uses the upstream development keystore** (`key.keystore`, alias
@@ -289,8 +288,8 @@ Libraries: `lime` 8.3.2, `openfl` 9.3.3, `hxcpp` 4.3.2, `flixel` 5.8.0,
 * Import of the upstream tree: **done and verified** (2176/2176 files match the
   upstream git blob hashes).
 * `lime display android` (project configuration): **passes**.
-* Android APK build: **fails** at the Haxe compile stage on the missing
-  fork-provided `android.*` types and `llua.Lua_helper.sendErrorsToLua`; no APK
-  exists. See "Build verification" above for the exact errors.
-* Next step: restore the three deleted dependency forks, then rebuild.
+* Android APK build: **passes** with the substitution set above —
+  `PSliceEngine-release.apk`, 718 MiB, armv7. See "Build verification".
+* Not verified yet: other ABIs, a real device run, and building the engine from
+  GitHub Actions (the root workflow still targets the old prototype).
 

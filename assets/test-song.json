@@ -1,0 +1,20 @@
+{
+  "title": "Test Song",
+  "artist": "FNF Unified",
+  "bpm": 120,
+  "source": "original-test",
+  "difficulties": [
+    {
+      "name": "Easy",
+      "tracks": [
+        {
+          "name": "player",
+          "notes": [
+            { "time": 1.0, "lane": 0, "length": 0, "type": "normal" },
+            { "time": 2.0, "lane": 1, "length": 0.5, "type": "hold" }
+          ]
+        }
+      ]
+    }
+  ]
+}

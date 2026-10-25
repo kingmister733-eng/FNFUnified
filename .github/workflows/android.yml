@@ -57,6 +57,8 @@ jobs:
           neko .harness/test-out/tests1.n
           haxe -cp source -cp tests -main tests.TestSongData -neko .harness/test-out/tests2.n
           neko .harness/test-out/tests2.n
+          haxe -cp source -cp tests -main tests.TestChartParser -neko .harness/test-out/tests3.n
+          neko .harness/test-out/tests3.n
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3

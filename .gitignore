@@ -1,0 +1,26 @@
+# Generated build output
+export/
+bin/
+obj/
+build/
+out/
+*.apk
+*.aab
+*.dex
+*.class
+
+# Haxe / Lime / OpenFL cache
+.haxelib/
+haxelib/
+*.hl
+*.ndll
+
+# IDE / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
+*.iml
+
+# Harness
+.harness/

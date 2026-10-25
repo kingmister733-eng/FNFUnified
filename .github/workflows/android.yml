@@ -49,6 +49,13 @@ jobs:
           done
           haxelib run lime setup -y
 
+      - name: Run Haxe unit tests
+        run: |
+          set -e
+          mkdir -p .harness/test-out
+          haxe -cp source -cp tests -main tests.TestMain -neko .harness/test-out/tests.n
+          neko .harness/test-out/tests.n
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:

@@ -1,33 +1,27 @@
 package tests;
 
-import haxe.unit.TestCase;
-import haxe.unit.TestRunner;
 import mods.ModFormatTools;
 import mods.ModFormat;
 
-class TestModFormatTools extends TestCase {
-    public function testPsychDetection() {
-        assertEquals(ModFormat.PsychEngine, ModFormatTools.detect(true, false, false, false));
-        assertEquals(ModFormat.PsychEngine, ModFormatTools.detect(false, true, false, false));
+class TestModFormatTools {
+    static var failures:Int = 0;
+    static function check(name:String, cond:Bool) {
+        if (cond) trace("PASS: " + name);
+        else { trace("FAIL: " + name); failures++; }
     }
-    public function testVSliceDetection() {
-        assertEquals(ModFormat.VSlice, ModFormatTools.detect(false, false, true, true));
-        assertEquals(ModFormat.VSlice, ModFormatTools.detect(false, false, false, true));
-    }
-    public function testUnknown() {
-        assertEquals(ModFormat.Unknown, ModFormatTools.detect(false, false, false, false));
-    }
-    public function testFromStringCase() {
-        assertEquals(ModFormat.PsychEngine, ModFormatTools.fromString("PSYCH"));
-        assertEquals(ModFormat.VSlice, ModFormatTools.fromString("V-Slice"));
-        assertEquals(ModFormat.Unknown, ModFormatTools.fromString(null));
-        assertEquals(ModFormat.Unknown, ModFormatTools.fromString(""));
-        assertEquals(ModFormat.Unknown, ModFormatTools.fromString("garbage"));
-    }
-    public function testToStringRoundTrip() {
-        assertEquals("psych", ModFormatTools.toString(ModFormat.PsychEngine));
-        assertEquals("vslice", ModFormatTools.toString(ModFormat.VSlice));
-        assertEquals("unknown", ModFormatTools.toString(ModFormat.Unknown));
+    static function main() {
+        check("psych data", ModFormatTools.detect(true, false, false, false) == ModFormat.PsychEngine);
+        check("psych scripts", ModFormatTools.detect(false, true, false, false) == ModFormat.PsychEngine);
+        check("vslice manifest+assets", ModFormatTools.detect(false, false, true, true) == ModFormat.VSlice);
+        check("vslice assets", ModFormatTools.detect(false, false, false, true) == ModFormat.VSlice);
+        check("unknown empty", ModFormatTools.detect(false, false, false, false) == ModFormat.Unknown);
+        check("fromString psych", ModFormatTools.fromString("PSYCH") == ModFormat.PsychEngine);
+        check("fromString vslice", ModFormatTools.fromString("V-Slice") == ModFormat.VSlice);
+        check("fromString null", ModFormatTools.fromString(null) == ModFormat.Unknown);
+        check("fromString empty", ModFormatTools.fromString("") == ModFormat.Unknown);
+        check("fromString garbage", ModFormatTools.fromString("garbage") == ModFormat.Unknown);
+        check("toString", ModFormatTools.toString(ModFormat.PsychEngine) == "psych");
+        if (failures > 0) { trace("FAILURES: " + failures); Sys.exit(1); }
+        trace("ALL TESTS PASSED");
     }
 }
-

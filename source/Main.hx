@@ -83,7 +83,6 @@ class Main extends Sprite {
         area.buttonMode = true;
         area.useHandCursor = true;
         area.addEventListener(MouseEvent.CLICK, function(_) { action(); });
-        area.addEventListener(MouseEvent.TOUCH_TAP, function(_) { action(); });
         menuLayer.addChild(area);
         clickAreas.push(area);
         area.name = label;

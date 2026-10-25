@@ -120,7 +120,10 @@ xsi:schemaLocation="http://lime.openfl.org/project/1.0.4 http://lime.openfl.org/
 	<haxelib name="flxanimate"/>
 
 	<!-- Android Specific-->
-	<haxelib name="extension-androidtools" if="android" />
+	<!-- extension-androidtools is bundled inside the Lime mobile build used for Android
+	     (Psych-Slice/lime-mobile); adding it here makes Lime abort with
+	     "You cannot add extension-androidtools to this Lime because it is already included."
+	     The engine source does not import extension.androidtools.* itself. -->
 
 	<!-- Disable Discord IO Thread -->
 	<haxedef name="DISCORD_DISABLE_IO_THREAD" if="hxdiscord_rpc" />
